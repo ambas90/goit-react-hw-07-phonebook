@@ -1,15 +1,27 @@
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { addContact, deleteContact, setFilter } from '../../redux/reducers';
 import ContactForm from '../contactForm/ContactForm';
 import Filter from '../filter/Filter';
 import ContactList from '../contactList/ContactList';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setFilter } from '../../redux/reducers';
 import { AppContainer, AppWrapper } from './AppStyles';
+import { getContacts, addContact, deleteContact } from '../../redux/operations';
+import {
+  selectContacts,
+  selectIsLoading,
+  selectError,
+  selectFilter,
+  selectFilteredContacts,
+} from '../../redux/selectors';
 
 export default function App() {
-  const contacts = useSelector(state => state.phonebook.contacts);
-  const filter = useSelector(state => state.phonebook.filter);
   const dispatch = useDispatch();
+
+  const contacts = useSelector(selectContacts);
+  const filter = useSelector(selectFilter);
+  const isLoading = useSelector(selectIsLoading);
+  const error = useSelector(selectError);
+  const filteredContacts = useSelector(selectFilteredContacts);
 
   const handleAddContact = ({ name, number }) => {
     const checkContactExist = contacts.some(
@@ -30,28 +42,9 @@ export default function App() {
     dispatch(setFilter(evt.target.value));
   };
 
-  const getFilteredContacts = () => {
-    return contacts.filter(contact =>
-      contact.name.toLowerCase().includes(filter.toLowerCase())
-    );
-  };
-
-  const saveContacts = () => {
-    localStorage.setItem('contacts', JSON.stringify(contacts));
-  };
-
-  const loadContacts = () => {
-    const savedContacts = JSON.parse(localStorage.getItem('contacts'));
-    if (savedContacts) {
-      savedContacts.forEach(contact => {
-        dispatch(addContact({ name: contact.name, number: contact.number }));
-      });
-    }
-  };
-
-  useEffect(loadContacts, [dispatch]);
-
-  useEffect(saveContacts, [contacts]);
+  useEffect(() => {
+    dispatch(getContacts());
+  }, [dispatch]);
 
   return (
     <AppContainer>
@@ -61,9 +54,11 @@ export default function App() {
         <h2>Contacts</h2>
         <Filter value={filter} onChange={handleChangeFilter} />
         <ContactList
-          contacts={getFilteredContacts()}
+          contacts={filteredContacts}
           onDeleteContact={HandleDeleteContact}
         />
+        {isLoading && <p>Loading...</p>}
+        {error && <p>{error}</p>}
       </AppWrapper>
     </AppContainer>
   );
